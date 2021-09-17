@@ -1,2 +1,53 @@
+# Imports
+
+from scipy import stats
+import numpy as np
+import statistics
+import math
+import random
+from Distribution import Distribution
+
+
 # D/M/1 - queue
 # The parameters
+
+c = 1 # Constant arrival rate
+lam = 1 # Parameter of the service time distribution
+theta = 3 #Fee level
+k = 0.5 # The scale factor for the service time (depends on theta)
+
+def discrete_DM1 (S, k):
+    """This function simulates the discrete time D/M/1 queue given a certain fee level theta
+    and initial mempool size of S"""
+    pois = Distribution(stats.poisson(1/k))
+    blocks = 0
+    while S > 0:
+        S += 1 #a customer arrives
+        block = pois.rvs() #number of blocks that have occured in the time unit
+        blocks += block # add it to the total number of blocks that have occured
+        S -= block # substract this number of the amount of customers in the queue
+    return blocks
+
+def multiple_discrete_DM1 (S, k, nrRuns):
+    """This function runs the function discrete_DM1 a nrRuns times and put the values 
+    in a dictionary"""
+    d = {}
+    for run in range(nrRuns):
+        if run % 100 == 0: # A clock to keeping track of the runs 
+            print (run)
+        number = discrete_DM1(S, k)
+        if number in d:
+            d[number] += 1
+        else:
+            d[number] = 1
+    return d
+  
+  def expectation_discrete_DM1 (S, k, nrRuns, N):
+    """This function generates a list of N times of expectation of a simulation of nr Runs runs"""
+    list_exp = []
+    for i in range(N):
+        values = multiple_discrete_DM1(S, k, nrRuns)
+        for v in values:
+            list_exp.append(v*values[v]/nrRuns)
+    return list_exp   
+    
