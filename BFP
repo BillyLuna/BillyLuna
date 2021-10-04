@@ -7,47 +7,107 @@ import math
 import random
 from Distribution import Distribution
 
+# This matrix transitions is such that transitions[i] gives exaclty the possbilities of the amount
+# of transactions seen in the mempool by the i+1 transaction.
+transitions = []
+for i in range (100):
+    row = []
+    for k in range(i+2):
+        row.append(k)
+    transitions.append(row)
 
-# D/M/1 - queue
-# The parameters
-
-c = 1 # Constant arrival rate
-lam = 1 # Parameter of the service time distribution
-theta = 3 #Fee level
-k = 0.5 # The scale factor for the service time (depends on theta)
-
-def discrete_DM1 (S, k):
-    """This function simulates the discrete time D/M/1 queue given a certain fee level theta
-    and initial mempool size of S"""
-    pois = Distribution(stats.poisson(1/k))
-    blocks = 0
-    while S > 0:
-        S += 1 #a customer arrives
-        block = pois.rvs() #number of blocks that have occured in the time unit
-        blocks += block # add it to the total number of blocks that have occured
-        S -= block # substract this number of the amount of customers in the queue
-    return blocks
-
-def multiple_discrete_DM1 (S, k, nrRuns):
-    """This function runs the function discrete_DM1 a nrRuns times and put the values 
-    in a dictionary"""
-    d = {}
-    for run in range(nrRuns):
-        if run % 100 == 0: # A clock to keeping track of the runs 
-            print (run)
-        number = discrete_DM1(S, k)
-        if number in d:
-            d[number] += 1
-        else:
-            d[number] = 1
-    return d
-  
-  def expectation_discrete_DM1 (S, k, nrRuns, N):
-    """This function generates a list of N times of expectation of a simulation of nr Runs runs"""
-    list_exp = []
-    for i in range(N):
-        values = multiple_discrete_DM1(S, k, nrRuns)
-        for v in values:
-            list_exp.append(v*values[v]/nrRuns)
-    return list_exp   
+def p_star (q,d):
+    """This function creates the transiton matrix used in stage 1 of the busy period."""
+    matrix = []
+    for i in range(100):
+        row = []
+        for entry in range(1, i+2):
+            row.append(stats.poisson.pmf(i+1-entry,q*(1/d)))
+        row.insert(0, 1-sum(row))
+        matrix.append(row)
     
+    return matrix
+
+def p (d):
+    matrix = []
+    for i in range(100):
+        row = []
+        for entry in range(1, i+2):
+            row.append(stats.poisson.pmf(i+1-entry,1/d))
+        row.insert(0, 1-sum(row))
+        matrix.append(row)    
+    return matrix
+
+def DM1_single(y, d, DM1_indicator = 0, P_star = [], P_matrix = []):
+    """This function simulates a single transaction time for a certain customer, when the initial
+    workload is y and the scaling parameter is d"""
+    transactions = 0 #number of transactions in the mempool
+    customer = 0 #number of transactions total entered in the busy period
+    departures = 0 # number of transactions that have departured
+    
+    # Stage 1
+
+    # While the discrete time of the service > 1, the amount of transactions in the mempool is just + 1
+    while max(0, y-customer) >= 1: 
+        transactions += 1
+        customer += 1
+        
+    # There is still some discrete service time left of the first transaction
+    if max(0, y-customer) > 0: 
+        if DM1_indicator != 1:    # (In the case of simulatin multiple times we have
+             P_star = p_star(max(0, y-customer), d) # that (y-customer) = 0.5)
+        newseen = random.choices (transitions[transactions],
+                                  P_star[transactions])[0]
+        departures += transactions - newseen + 1
+        transactions = newseen 
+        customer += 1
+
+    # Stage 2
+    if DM1_indicator != 1:
+        P_matrix = p(d)
+    while transactions > 0:
+        newseen = random.choices (transitions[transactions],
+                                 P_matrix[transactions])[0]
+        departures += transactions - newseen + 1
+        transactions = newseen 
+        customer += 1
+    
+    return departures
+    
+  def DM1_multiple(y,d,n, DM1_indicator, P_star = 0,P_matrix = 0):
+    """we will do n DM1 simulations with inital workload y and scale paramter d"""
+    values = [0]*n
+    for i in range (n):
+        if DM1_indicator == 1:
+            values[i] = DM1_single(y,d, DM1_indicator, P_star, P_matrix) 
+        else:
+            values[i] = DM1_single(y,d)
+    
+    
+    return np.mean(values), np.std(values), values  
+ 
+ def DM1_quantities(n):
+    """Compute the means, variances and disitributions for differnt values of c and y """
+    dic_values = {}
+    dic_means = {}
+    dic_std = {}
+    DM1_indicator = 1 # Setting this equal to 1 we compute only p and p_star once
+    for d in [0.3, 0.6, 0.9]:
+        P_matrix = p(d)
+        P_star = p_star(0.5, d)
+        means = []
+        standard = []
+        dist = []
+        for y in [0.5, 1, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]:
+            average,std,values = DM1_multiple(y,d,n, DM1_indicator, P_star, P_matrix)
+            means.append(average)
+            standard.append(std)
+            dist.append(values)
+        dic_means[d] = means
+        dic_values[d] = dist
+        dic_std[d] = standard
+        print(dic_means)
+    return dic_means, dic_values, dic_std
+            
+ 
+  
