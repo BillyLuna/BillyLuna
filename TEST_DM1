@@ -1,0 +1,181 @@
+# We will see how our simulation behaves when it is runned for a lot of customers
+# We will recrod the number of transactions seen at the mempool just before arrival N in a dicitionary. 
+# Then we should have that the P(N = n) = (1-x)x^n; where x is the solution in (0,1) of 
+# x = e^(-(1/d - x/d))
+# We have x = += 0.04088 for d = 0.3, x = += 0.3242 for d= 0.6, x = += 0.8069 for d = 0.9
+
+def DM1_single_test(y, d, DM1_indicator = 0, P_star = [], P_matrix = []):
+    """This function simulates a single transaction time for a certain customer, when the initial
+    workload is y and the scaling parameter is d"""
+    transactions = 0 #number of transactions in the mempool
+    customer = 0 #number of transactions total entered in the system
+    departures = 0 # number of transactions that have departured
+    arrivaldist = {}
+    # Stage 1
+
+    # While the discrete time of the service > 1, the amount of transactions in the mempool is just + 1
+    while max(0, y-customer) >= 1: 
+        transactions += 1
+        arrivaldist[transactions] = 1
+        customer += 1
+        
+    # There is still some discrete service time left of the first transaction
+    if max(0, y-customer) > 0: 
+        if DM1_indicator != 1:    # (In the case of simulatin multiple times we have
+             P_star = p_star(max(0, y-customer), d) # that (y-customer) = 0.5)
+        newseen = random.choices (transitions[transactions],
+                                  P_star[transactions])[0]
+        departures += transactions - newseen + 1
+        transactions = newseen
+        if newseen in arrivaldist:
+            arrivaldist[newseen] +=1
+        else:
+            arrivaldist[newseen] = 1
+        customer += 1
+
+    # Stage 2
+    if DM1_indicator != 1:
+        P_matrix = p(d)
+    while customer < 100000000:
+        newseen = random.choices (transitions[transactions],
+                                 P_matrix[transactions])[0]
+        departures += transactions - newseen + 1
+        transactions = newseen
+        if newseen in arrivaldist:
+            arrivaldist[newseen] +=1
+        else:
+            arrivaldist[newseen] = 1
+        customer += 1
+    
+    return arrivaldist
+       
+TEST_1 = DM1_single_test(6.5, 0.3)
+TEST_2 = DM1_single_test(6.5, 0.6)
+TEST_3 = DM1_single_test(6.5, 0.9)
+
+# Test for c = 0.3
+TEST_1_results = []
+for i in range(max(TEST_1.keys())+1):
+    List = [TEST_1[i]/100000000, pow(0.04088,i) * (1-0.04088)]
+    TEST_1_results.append(List)
+TEST_1_results
+
+---> outcome:
+[[0.95911402, 0.95912],
+ [0.03921459, 0.0392088256],
+ [0.00160139, 0.001602856790528],
+ [6.701e-05, 6.552478559678464e-05],
+ [2.84e-06, 2.678653235196556e-06],
+ [1.3e-07, 1.095033442548352e-07],
+ [1e-08, 4.476496713137663e-09],
+ [1e-08, 1.8299918563306767e-10]]
+ 
+ # Test for c = 0.6
+TEST_2_results = []
+for i in range(max(TEST_2.keys())+1):
+    List = [TEST_2[i]/100000000, pow(0.3242,i) * (1-0.3242)]
+    TEST_2_results.append(List)
+TEST_2_results
+
+--> outcome:
+[[0.67562849, 0.6758],
+ [0.2191525, 0.21909436],
+ [0.0711072, 0.07103039151199998],
+ [0.02307692, 0.023028052928190396],
+ [0.0074733, 0.007465694759319326],
+ [0.00240651, 0.0024203782409713253],
+ [0.00078081, 0.0007846866257229037],
+ [0.00025553, 0.00025439540405936537],
+ [8.088e-05, 8.247498999604625e-05],
+ [2.509e-05, 2.6738391756718195e-05],
+ [8.36e-06, 8.668586607528037e-06],
+ [2.83e-06, 2.8103557781605895e-06],
+ [9.5e-07, 9.111173432796631e-07],
+ [4.4e-07, 2.953842426912668e-07],
+ [1.2e-07, 9.576357148050869e-08],
+ [6e-08, 3.1046549873980915e-08],
+ [1e-08, 1.0065291469144613e-08]]
+ 
+ # Test for c = 0.9
+TEST_3_results = []
+for i in range(max(TEST_3.keys())+1):
+    print(i)
+    List = [TEST_3[i]/100000000, pow(0.8069,i) * (1-0.8069)]
+    TEST_3_results.append(List)
+TEST_3_results
+
+--> outcome:
+[[0.1931852, 0.19310000000000005],
+ [0.15579406, 0.15581239000000002],
+ [0.12581091, 0.125725017491],
+ [0.10154973, 0.1014475166134879],
+ [0.08191903, 0.08185800115542338],
+ [0.06605389, 0.06605122113231113],
+ [0.05327667, 0.053296730331661844],
+ [0.04295423, 0.04300513170461794],
+ [0.03463029, 0.034700840772456214],
+ [0.02794636, 0.028000108419294914],
+ [0.02254066, 0.022593287483529068],
+ [0.01820214, 0.018230523670459603],
+ [0.01469441, 0.014710209549693855],
+ [0.01185553, 0.01186966808564797],
+ [0.00958958, 0.009577635178309346],
+ [0.00775295, 0.007728193825377812],
+ [0.0062229, 0.006235879597697355],
+ [0.00501081, 0.005031731247381995],
+ [0.00401954, 0.004060103943512532],
+ [0.00325375, 0.003276097872020262],
+ [0.00263643, 0.002643483372933149],
+ [0.00212515, 0.002133026733619758],
+ [0.00172521, 0.0017211392713577826],
+ [0.00139049, 0.0013887872780585946],
+ [0.00111799, 0.00112061245466548],
+ [0.00090164, 0.0009042221896695756],
+ [0.00073067, 0.0007296168848443806],
+ [0.00059128, 0.0005887278643809307],
+ [0.00047075, 0.0004750445137689729],
+ [0.0003878, 0.00038331341816018425],
+ [0.00031317, 0.00030929559711345266],
+ [0.00025672, 0.0002495706173108449],
+ [0.00020805, 0.00020137853110812075],
+ [0.00017072, 0.00016249233675114263],
+ [0.00014012, 0.00013111506652449696],
+ [0.00011391, 0.0001057967471786166],
+ [9.089e-05, 8.536739529842573e-05],
+ [7.223e-05, 6.888295126629972e-05],
+ [5.613e-05, 5.558165337677724e-05],
+ [4.657e-05, 4.484883610972155e-05],
+ [3.742e-05, 3.618852585693432e-05],
+ [3.011e-05, 2.92005215139603e-05],
+ [2.448e-05, 2.3561900809614564e-05],
+ [1.893e-05, 1.901209776327799e-05],
+ [1.605e-05, 1.534086168518901e-05],
+ [1.241e-05, 1.237854129377901e-05],
+ [9.56e-06, 9.988244969950283e-06],
+ [8.71e-06, 8.059514866252883e-06],
+ [6.59e-06, 6.503222545579451e-06],
+ [5.43e-06, 5.247450272028059e-06],
+ [4.49e-06, 4.234167624499441e-06],
+ [3.4e-06, 3.4165498562085978e-06],
+ [2.81e-06, 2.7568140789747177e-06],
+ [2.14e-06, 2.2244732803246996e-06],
+ [1.78e-06, 1.7949274898940001e-06],
+ [1.39e-06, 1.4483269915954685e-06],
+ [1.09e-06, 1.1686550495183833e-06],
+ [9.3e-07, 9.429877594563835e-07],
+ [8.6e-07, 7.608968231053559e-07],
+ [7.6e-07, 6.139676465637116e-07],
+ [5.6e-07, 4.954104940122589e-07],
+ [3.5e-07, 3.9974672761849165e-07],
+ [2.3e-07, 3.225556345153609e-07],
+ [1.5e-07, 2.602701414904447e-07],
+ [8e-08, 2.100119771686398e-07],
+ [6e-08, 1.6945866437737545e-07],
+ [6e-08, 1.3673619628610423e-07],
+ [8e-08, 1.103324367832575e-07],
+ [1.7e-07, 8.902724324041048e-08],
+ [1.3e-07, 7.18360825706872e-08],
+ [1.3e-07, 5.796453502628751e-08],
+ [5e-08, 4.677158331271139e-08],
+ [3e-08, 3.7739990575026815e-08],
+ [2e-08, 3.0452398394989133e-08]]
