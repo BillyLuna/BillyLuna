@@ -1,0 +1,47 @@
+from scipy import stats
+import numpy as np
+import statistics
+import math
+import random
+from Distribution import Distribution
+from matplotlib import pyplot as plt
+import seaborn as sns
+
+# Single M/M^b/1 queue in discrete time
+
+def SingleBatchqueue_D(lam, mu, b, n):
+    """This funcion simulates a single busy period from the time the target transaction enters 
+    till the mempool is empty and returns the number of batches that are mined"""
+    uniDist = Distribution(stats.uniform(0,1))
+    S = n + 1 # n is the intial workload and the target customer raises the mempool size with 1.
+    departures = 0
+    while S != 0:
+        event = uniDist.rvs(0,1)
+        if event < lam/(lam + mu): # an arrival occurs
+            S += 1
+        else: # a departure occrus
+            S -= max(b, S)
+            departures += 1 
+    
+    return departures
+    
+ # Single M/M^b/1 queue in continious time
+
+def SingleBatchqueue_C(lam, mu, b, n):
+    """This funcion simulates a single busy period from the time the target transaction enters 
+    till the mempool is empty and returns this time"""
+    uniDist = Distribution(stats.uniform(0,1))
+    expDist = Distribution(stats.expon(lam + mu)) # Generate exponential variables
+    S = n + 1 # n is the intial workload and the target customer raises the mempool size with 1.
+    departures = 0
+    time = 0
+    while S != 0:
+        event = uniDist.rvs()
+        time += expDist.rvs()
+        if event < lam/(lam + mu): # an arrival occurs
+            S += 1
+        else: # a departure occrus
+            S -= max(b, S)
+            departures += 1 
+    
+    return time   
