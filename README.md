@@ -1,4 +1,4 @@
-- 👋 Hi, I’m @BillyLuna
+- 👋 Hi, I’m @Arnoud
 - 👀 I’m interested in board games and mathematics
 - 🌱 I’m currently learning math
 - 💞️ I’m looking to collaborate on ...
